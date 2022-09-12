@@ -13,10 +13,9 @@ defmodule Mess.MixProject do
       elixir: "~> 1.10",
       elixirc_paths: [],
       start_permanent: Mix.env() == :prod,
-      deps: [],
+      deps: []
     ]
   end
 
   def application, do: []
-
 end
