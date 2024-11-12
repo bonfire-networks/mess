@@ -15,8 +15,8 @@ defmodule Mess.MixProject do
       deps: [
         {
           :jungle,
-          path: "../jungle"
-          # git: "https://github.com/bonfire-networks/jungle"
+          # path: "../jungle"
+          git: "https://github.com/bonfire-networks/jungle"
         },
         {:igniter, "~> 0.4.7", only: [:dev, :test]}
       ]
