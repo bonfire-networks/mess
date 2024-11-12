@@ -12,7 +12,14 @@ defmodule Mess.MixProject do
       version: "0.1.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: []
+      deps: [
+        {
+          :jungle,
+          path: "../jungle"
+          # git: "https://github.com/bonfire-networks/jungle"
+        },
+        {:igniter, "~> 0.4.7", only: [:dev, :test]}
+      ]
     ]
   end
 
