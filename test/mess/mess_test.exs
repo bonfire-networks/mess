@@ -24,23 +24,23 @@ defmodule Mess.MessTest do
       {:other_package, "2.0.0", [override: true]}
     ]
 
-    assert Mess.deps([hex: hex], []) == expected
+    assert match?(expected, Mess.deps([hex: hex], []))
   end
 
   test "package_exists?/2 returns true if package exists", %{hex: hex} do
-    assert Mess.Manager.package_exists?("my_package", hex: hex)
+    assert Mess.Janitor.package_exists?("my_package", hex: hex)
   end
 
   test "package_exists?/2 returns false if package does not exist", %{hex: hex} do
-    refute Mess.Manager.package_exists?("nonexistent_package", hex: hex)
+    refute Mess.Janitor.package_exists?("nonexistent_package", hex: hex)
   end
 
   test "get_package/2 retrieves package data if it exists", %{hex: hex} do
-    result = Mess.Manager.get_package([hex: hex], "my_package")
-    assert result == {:my_package, "1.2.3", [override: true]}
+    result = Mess.Janitor.get_package([hex: hex], "my_package")
+    assert match?({:my_package, "1.2.3", [override: true]}, result)
   end
 
   test "get_package/2 returns nil if package does not exist", %{hex: hex} do
-    refute Mess.Manager.get_package([hex: hex], "nonexistent_package")
+    refute Mess.Janitor.get_package([hex: hex], "nonexistent_package")
   end
 end

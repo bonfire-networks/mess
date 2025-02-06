@@ -1,4 +1,4 @@
-defmodule Mess.Manager do
+defmodule Mess.Janitor do
   @moduledoc """
   Provides functions for managing packages and handling versioning logic
   with error reporting and file operations, utilizing the `Mess` module
@@ -20,7 +20,7 @@ defmodule Mess.Manager do
 
   ## Example
 
-      iex> Mess.Manager.clone("my_package", "https://example.com/repo.git", "main", "/clones")
+      iex> Mess.Janitor.clone("my_package", "https://example.com/repo.git", "main", "/clones")
   """
   def clone(package, repo \\ nil, opts \\ []) do
     defs = opts[:defs] || [git: "deps.git", path: "deps.path"]
@@ -42,54 +42,59 @@ defmodule Mess.Manager do
       )
 
       add(package, repo, :git, defs[:git] || "deps.git")
-      install(package, clone_path, :path, defs[:path] || "deps.path")
+      add(package, repo, :path, defs[:path] || "deps.path")
 
       {:ok, output}
     end
   end
 
-  @doc """
-  Adds and installs a package.
+  # @doc """
+  # Adds and installs a package.
+  # NOTE: deprecated in favour of an Igniter task in bonfire_common
 
-  ## Parameters
-    - `package`: the name of the package as a string.
-    - `package_source`: the version, repo, or path of the package as a string.
-    - `type`: `:hex`, `:git`, `:path`.
-    - `def_path`: the path of the file where the package should be added, as a string.
+  # ## Parameters
+  #   - `package`: the name of the package as a string.
+  #   - `package_source`: the version, repo, or path of the package as a string.
+  #   - `type`: `:hex`, `:git`, `:path`.
+  #   - `def_path`: the path of the file where the package should be added, as a string.
 
-  ## Example
+  # ## Example
 
-      iex> Mess.Manager.install("my_package", "1.2.3", :git, "deps.git")
-      "Installed package my_package at version 1.2.3 to file deps.git"
-  """
-  def install(package, package_source, type, def_path) do
-    with :ok <- add(package, package_source, type, def_path) do
-      ret =
-        case type do
-          # "#{package}@#{package_source}"
-          :hex -> package
-          :git -> "#{package}@git:#{package_source}"
-          :path -> "#{package}@path:#{package_source}"
-        end
-        |> List.wrap()
-        # run Igniter installers (if any)
-        |> Mix.Tasks.Igniter.Install.run()
+  #     iex> Mess.Janitor.install("my_package", "1.2.3", :git, "deps.git")
+  #     "Installed package my_package at version 1.2.3 to file deps.git"
+  # """
+  # def install(package, package_source, type, def_path) do
+  #   with :ok <- add(package, package_source, type, def_path) do
+  #     ret =
+  #       case type do
+  #         # "#{package}@#{package_source}"
+  #         :hex -> package
+  #         :git -> "#{package}@git:#{package_source}"
+  #         :path -> "#{package}@path:#{package_source}"
+  #       end
+  #       |> List.wrap()
+  #       # run Igniter installers (if any)
+  #       |> Mix.Tasks.Bonfire.Extension.Install.run()
 
-      Logger.info("Installed package #{package} (#{package_source}) to file #{def_path}")
+  #     Logger.info("Installed package #{package} (#{package_source}) to file #{def_path}")
 
-      ret
-    end
+  #     ret
+  #   end
+  # end
+
+  def upgrade(package, package_source, type, def_path) do
+    # WIP: just modify the version in the file instead?
+    old_version = disable_package(package, type, def_path)
+    ret = add(package, package_source, type, def_path)
+    {ret, old_version}
   end
 
   @doc """
-  Adds a package (to also install it you should prefer `install/4`). 
-
-  ## Parameters
-    See `install/4`.
+  Adds a package to the specified definition file.
 
   ## Example
 
-      iex> Mess.Manager.add("my_package", "1.2.3", "/path/to/file")
+      iex> Mess.Janitor.add("my_package", "1.2.3", "/path/to/file")
       "Added package my_package at version 1.2.3 to file /path/to/file"
   """
   def add(package, package_source, type, def_path) do
@@ -103,6 +108,7 @@ defmodule Mess.Manager do
     if pkg = find_package(lines, package) do
       IO.warn("#{package} was already added")
       IO.inspect(pkg)
+      :ok
     else
       pkg =
         case type do
@@ -111,7 +117,8 @@ defmodule Mess.Manager do
           :path -> {dep_name, path: package_source}
         end
 
-      write_to_file(def_path, lines ++ [pkg])
+      # overwrite_file(def_path, lines ++ [pkg])
+      append_to_file(def_path, [pkg])
 
       Logger.info("Added package #{package} (#{package_source}) to file #{def_path}")
 
@@ -132,7 +139,7 @@ defmodule Mess.Manager do
 
   ## Example
 
-      iex> Mess.Manager.disable_package("my_package", "/path/to/file")
+      iex> Mess.Janitor.disable_package("my_package", "/path/to/file")
       "1.2.3"
   """
   def disable_package(name, type, def_path) do
@@ -164,7 +171,8 @@ defmodule Mess.Manager do
               line
           end)
 
-        write_to_file(def_path, updated_lines)
+        overwrite_file(def_path, updated_lines) # FIXME: this should not overwrite the file otherwise we lose the comments
+
         version
 
         #   count ->
@@ -203,7 +211,7 @@ defmodule Mess.Manager do
   #           line
   #       end)
 
-  #     write_to_file(def_path, updated_lines)
+  #     overwrite_file(def_path, updated_lines)
   #   end
 
   def get_version(package, defs) do
@@ -310,10 +318,17 @@ defmodule Mess.Manager do
 
   def mes_deps(defs) when is_map(defs) do
     Map.take(defs, [:hex, :git, :path])
+    |> Keyword.new()
     |> Mess.deps([])
   end
 
-  def write_to_file(file_path, deps) do
+  def append_to_file(file_path, deps) do
+    with {:ok, file} <- File.open(file_path, [:append]) do
+      IO.write(file, format_deps(deps))
+    end  
+  end
+  
+  def overwrite_file(file_path, deps) do
     File.write!(file_path, format_deps(deps))
   end
 

@@ -10,18 +10,23 @@ defmodule Mess.MixProject do
     [
       app: :mess,
       version: "0.1.0",
-      elixir: "~> 1.10",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
+      compilers: Mix.compilers(),
       deps: [
         {
           :jungle,
           # path: "../jungle"
           git: "https://github.com/bonfire-networks/jungle"
         },
-        {:igniter, "~> 0.4.7", only: [:dev, :test]}
+        {:igniter, "~> 0.5.21", only: [:dev, :test]}
       ]
     ]
   end
 
-  def application, do: []
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  def application, do: [extra_applications: [:logger, :runtime_tools]]
 end
