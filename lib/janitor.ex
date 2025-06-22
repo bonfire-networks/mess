@@ -171,7 +171,8 @@ defmodule Mess.Janitor do
               line
           end)
 
-        overwrite_file(def_path, updated_lines) # FIXME: this should not overwrite the file otherwise we lose the comments
+        #  FIXME: this should not overwrite the file otherwise we lose the comments
+        overwrite_file(def_path, updated_lines)
 
         version
 
@@ -325,9 +326,9 @@ defmodule Mess.Janitor do
   def append_to_file(file_path, deps) do
     with {:ok, file} <- File.open(file_path, [:append]) do
       IO.write(file, format_deps(deps))
-    end  
+    end
   end
-  
+
   def overwrite_file(file_path, deps) do
     File.write!(file_path, format_deps(deps))
   end

@@ -7,9 +7,12 @@
 if not Code.ensure_loaded?(Mess) do
   defmodule Mess do
     @sources [path: "deps.path", git: "deps.git", hex: "deps.hex"]
-    
+
     defp newline, do: ~r/(?:\r\n|[\r\n])/
-    defp parser, do: ~r/^(?<indent>\s*)((?<package>[a-z_][a-z0-9_]+)\s*=\s*"(?<value>[^"]+)")?(?<post>.*)/
+
+    defp parser,
+      do: ~r/^(?<indent>\s*)((?<package>[a-z_][a-z0-9_]+)\s*=\s*"(?<value>[^"]+)")?(?<post>.*)/
+
     defp git_branch, do: ~r/(?<repo>[^#]+)(#(?<branch>.+))?/
 
     def deps(sources \\ @sources, extra_deps \\ []),
