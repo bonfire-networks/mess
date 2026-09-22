@@ -100,7 +100,7 @@ defmodule Mess.Janitor do
   def add(package, package_source, type, def_path) do
     lines =
       Mess.deps([{type, def_path}], [])
-      |> IO.inspect()
+      
 
     #  naughty, but triggered by dev
     dep_name = String.to_atom(package)
@@ -337,7 +337,7 @@ defmodule Mess.Janitor do
     deps
     |> Enum.map(&format_dep/1)
     |> Enum.join("\n")
-    |> IO.inspect()
+    
   end
 
   defp format_dep({package, version, opts}) when is_binary(version) do
